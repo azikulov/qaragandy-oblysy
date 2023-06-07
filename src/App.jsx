@@ -2,7 +2,7 @@
 
 // 1. Необходимо сделать адаптивную верстку шапки сайта
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import axios from "axios";
 
 import { API_URL, endpoints } from "./config";
@@ -13,6 +13,9 @@ import LogoSVG from "./assets/logo";
 
 function LoginModal() {
   const [localToken, setLocalToken] = useState({ access: null, refresh: null });
+  // const filename = useRef(null);
+  const [filename, setFilename] = useState();
+
   const [formData, setFormData] = useState({
     // phone: "",
     // password: "",
@@ -23,10 +26,6 @@ function LoginModal() {
   // eslint-disable-next-line no-unused-vars
   const { _, updateToken } = useTokenContext();
   const { isAuth, updateAuth } = useAuthContext();
-
-  function handleSelectFile(event) {
-    console.log(event.target.files);
-  }
 
   async function getToken({ phone, password }) {
     if (localToken.access && localToken.refresh) {
@@ -61,16 +60,15 @@ function LoginModal() {
     return response.data;
   }
 
-  async function sendCertificate({ accessToken, certificate }) {
-    return await axios.patch(
-      API_URL + endpoints.UPLOAD_CERTIFICATE,
-      { journalist_certificate: certificate },
-      {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      }
-    );
+  async function sendCertificate({ accessToken }) {
+    const formData = new FormData();
+    formData.append("journalist_certificate", filename);
+
+    return await axios.patch(API_URL + endpoints.UPLOAD_CERTIFICATE, formData, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
   }
 
   async function handleSubmit() {
@@ -85,7 +83,6 @@ function LoginModal() {
     try {
       const response = await sendCertificate({
         accessToken: verifiedToken.access,
-        certificate: "124sdkjfkbfksdjbfhlsdbfbshjbdfsdbjbfsjdbfjhbfsd",
       });
 
       if (response.status === 200) {
@@ -132,7 +129,7 @@ function LoginModal() {
 
             <input
               // type="password"
-              inputMode="text"
+              type="text"
               placeholder="**********"
               className="p-3 text-[#232323] border rounded-2xl border-[#9A9A9A]"
               onChange={(event) =>
@@ -148,15 +145,18 @@ function LoginModal() {
           <div className="flex flex-col items-start gap-3 mt-4">
             <p className="text-[#232323]">Копия удостоверения журналиста</p>
 
-            <button className="px-6 py-2.5 rounded-full text-white bg-[#02C5C4]">
-              Загрузить файлы
-            </button>
+            <label
+              htmlFor="file"
+              className="px-6 py-2.5 rounded-full cursor-pointer text-white bg-[#02C5C4]"
+            >
+              {filename ? filename.name : "Загрузить файлы"}
+            </label>
 
             <input
-              onChange={handleSelectFile}
+              id="file"
+              onChange={(event) => setFilename(event.currentTarget.files[0])}
               hidden
               type="file"
-              className="px-4 py-3 text-[#232323] border rounded-2xl border-[#9A9A9A]"
             />
           </div>
 
@@ -182,11 +182,9 @@ export default function App() {
   const { isAuth } = useAuthContext();
 
   const [candidates, setCadidates] = useState([]);
-  const [nominations, setNominations] = useState([]);
+  // const [nominations, setNominations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-
-  let regexp = /^(?:[^:]+:\/\/)?([^.]+\.)*([^.]+)\.([^.]+)(?:$|\/)/;
-  const extractDomain = (s) => s.match(regexp)[2];
+  const [filteredCandidates, setFilteredCandidates] = useState([]);
 
   const NOMINATIONS = {
     VER: "За верность профессии",
@@ -200,6 +198,22 @@ export default function App() {
     STY: "За стиль и функциональность",
     NET: "За лучшее освещение актуальных проблем в социальных сетях",
   };
+
+  const NOMINATIONS_LIST = [
+    { name: "VER", nomination: "За верность профессии" },
+    { name: "ACT", nomination: "За активную жизненную позицию" },
+    { name: "OBJ", nomination: "Мастер объектива" },
+    { name: "RUR", nomination: "Лучшее освещение сельской тематики" },
+    { name: "SOC", nomination: "Лучшее освещение социальной тематики" },
+    { name: "IND", nomination: "Лучшее освещение производственной тематики" },
+    { name: "SUC", nomination: "За первые успехи" },
+    { name: "WOR", nomination: "Лучшая творческая работа года" },
+    { name: "STY", nomination: "За стиль и функциональность" },
+    {
+      name: "NET",
+      nomination: "За лучшее освещение актуальных проблем в социальных сетях",
+    },
+  ];
 
   const getCandidates = useCallback(
     function () {
@@ -216,19 +230,19 @@ export default function App() {
     [token.access]
   );
 
-  const getNominations = useCallback(
-    function () {
-      axios
-        .get(API_URL + endpoints.NOMINATIONS, {
-          headers: {
-            Authorization: `Bearer ${token.access}`,
-          },
-        })
-        .then((response) => setNominations(response.data))
-        .catch((error) => console.log(error));
-    },
-    [token.access]
-  );
+  // const getNominations = useCallback(
+  //   async function () {
+  //     return await axios
+  //       .get(API_URL + endpoints.NOMINATIONS, {
+  //         headers: {
+  //           Authorization: `Bearer ${token.access}`,
+  //         },
+  //       })
+  //       .then((response) => setNominations(response.data))
+  //       .catch((error) => console.log(error));
+  //   },
+  //   [token.access]
+  // );
 
   function handleVote(id, nomination) {
     return async (event) => {
@@ -252,20 +266,34 @@ export default function App() {
         }
       } catch (e) {
         if (
-          e.response.data.message === "Вы уже проголосовали в данной номинации"
+          e.response.data.error === "Вы уже проголосовали в данной номинации"
         ) {
-          console.log("Вы уже проголосовали в данной номинации");
+          alert("Вы уже проголосовали в данной номинации");
         }
       }
     };
   }
 
+  function filterCandidates(filterBy) {
+    setFilteredCandidates([
+      ...candidates.filter(
+        (candidate) => candidate.nominations[0]?.nomination === filterBy
+      ),
+    ]);
+  }
+
+  // useEffect(() => {
+  //   if (isAuth) {
+  //     getCandidates();
+  //     getNominations();
+  //   }
+  // }, [getCandidates, isAuth, getNominations]);
+
   useEffect(() => {
     if (isAuth) {
       getCandidates();
-      getNominations();
     }
-  }, [getCandidates, isAuth, getNominations]);
+  }, [getCandidates, isAuth]);
 
   return (
     <div>
@@ -379,16 +407,19 @@ export default function App() {
           Номинации
         </h1>
         <ul className="flex flex-wrap justify-center gap-x-6 gap-y-4 mt-5">
-          {nominations.map((nomination) => (
-            <li key={nomination.id}>
+          {NOMINATIONS_LIST.map((nomination) => (
+            <li key={nomination.name}>
               <label className="flex items-center gap-x-2.5">
                 <input
                   type="checkbox"
                   className="w-4 h-4 checked:accent-[#02C5C4]"
+                  onChange={(e) =>
+                    e.currentTarget.checked
+                      ? filterCandidates(nomination.name)
+                      : filterCandidates("")
+                  }
                 />
-                <span className="text-[#232323]">
-                  {NOMINATIONS[nomination.nomination]}
-                </span>
+                <span className="text-[#232323]">{nomination.nomination}</span>
               </label>
             </li>
           ))}
@@ -397,79 +428,161 @@ export default function App() {
         <div className="my-8 w-full bg-[#9A9A9A] h-[1px]"></div>
 
         <ul className="grid grid-cols-2  gap-8">
-          {candidates.map((candidate) => (
-            <li key={candidate.id}>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="w-full">
-                  <h1 className="text-2xl font-semibold text-[#232323]">
-                    {candidate.full_name}
-                  </h1>
+          {filteredCandidates.length
+            ? filteredCandidates?.map((candidate) => (
+                <li key={candidate.id}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="w-full">
+                      <h1 className="text-2xl font-semibold text-[#232323]">
+                        {candidate.full_name}
+                      </h1>
 
-                  <p className="mt-3 font-medium text-sm px-6 py-3 rounded-full w-fit border border-[#02C5C4]">
-                    {NOMINATIONS[candidate.nominations[0]?.nomination]}
-                  </p>
+                      <p className="mt-3 font-medium text-sm px-6 py-3 rounded-full w-fit border border-[#02C5C4]">
+                        {NOMINATIONS[candidate.nominations[0]?.nomination]}
+                      </p>
 
-                  <p
-                    onMouseEnter={(e) => {
-                      e.currentTarget.lastElementChild.classList.add("block");
-                      e.currentTarget.lastElementChild.classList.remove(
-                        "hidden"
-                      );
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.lastElementChild.classList.remove(
-                        "block"
-                      );
-                      e.currentTarget.lastElementChild.classList.add("hidden");
-                    }}
-                    className="relative last:block mt-4 font-medium text-[#232323]"
-                  >
-                    {String(candidate.bio).substring(0, 200)}...
-                    <span className="hidden z-40 overflow-y-auto h-52 absolute top-0 left-0 bg-white p-2 rounded-md shadow-lg">
-                      {candidate.bio}
-                    </span>
-                  </p>
-
-                  <div className="mt-4 font-medium text-[#232323]">
-                    <span>Проголосовали: </span>
-                    <span className="font-bold text-sm py-1.5 px-4 bg-[#02C5C4] text-white rounded-full">
-                      {candidate.nominations[0]?.votes}
-                    </span>
-                  </div>
-
-                  <ul className="mt-4 flex flex-col items-start gap-y-3">
-                    <li
-                      className="grid grid-cols-1"
-                      key={candidate.materials[0].id}
-                    >
-                      <a
-                        className="py-3 px-6 border text-ellipsis whitespace-nowrap overflow-hidden w-full rounded-full inline-block border-[#9A9A9A] font-medium text-[#232323]"
-                        href={candidate.materials[0].link}
+                      <p
+                        onMouseEnter={(e) => {
+                          e.currentTarget.lastElementChild.classList.add(
+                            "block"
+                          );
+                          e.currentTarget.lastElementChild.classList.remove(
+                            "hidden"
+                          );
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.lastElementChild.classList.remove(
+                            "block"
+                          );
+                          e.currentTarget.lastElementChild.classList.add(
+                            "hidden"
+                          );
+                        }}
+                        className="relative last:block mt-4 font-medium text-[#232323]"
                       >
-                        {/* {extractDomain(candidate.materials[0])} */}
-                        {candidate.materials[0].link}
-                      </a>
-                    </li>
-                  </ul>
-                </div>
+                        {String(candidate.bio).substring(0, 200)}...
+                        <span className="hidden z-40 overflow-y-auto h-52 absolute top-0 left-0 bg-white p-2 rounded-md shadow-lg">
+                          {candidate.bio}
+                        </span>
+                      </p>
 
-                <div className="">
-                  {/* <img src={candidate.photo} alt="" /> */}
-                  <div className="w-full h-80 bg-slate-600"></div>
-                </div>
+                      <div className="mt-4 font-medium text-[#232323]">
+                        <span>Проголосовали: </span>
+                        <span className="font-bold text-sm py-1.5 px-4 bg-[#02C5C4] text-white rounded-full">
+                          {candidate.nominations[0]?.votes}
+                        </span>
+                      </div>
 
-                <button
-                  onClick={handleVote(
-                    candidate.id,
-                    candidate.nominations[0]?.nomination
-                  )}
-                  className="py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] col-start-1 col-end-3"
-                >
-                  Проголосовать
-                </button>
-              </div>
-            </li>
-          ))}
+                      <ul className="mt-4 flex flex-col items-start gap-y-3">
+                        <li
+                          className="grid grid-cols-1"
+                          key={candidate.materials[0].id}
+                        >
+                          <a
+                            className="py-3 px-6 border text-ellipsis whitespace-nowrap overflow-hidden w-full rounded-full inline-block border-[#9A9A9A] font-medium text-[#232323]"
+                            href={candidate.materials[0].link}
+                          >
+                            {/* {extractDomain(candidate.materials[0])} */}
+                            {candidate.materials[0].link}
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="">
+                      {/* <img src={candidate.photo} alt="" /> */}
+                      <div className="w-full h-80 bg-slate-600"></div>
+                    </div>
+
+                    <button
+                      onClick={handleVote(
+                        candidate.id,
+                        candidate.nominations[0]?.nomination
+                      )}
+                      className="py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] col-start-1 col-end-3"
+                    >
+                      Проголосовать
+                    </button>
+                  </div>
+                </li>
+              ))
+            : candidates?.map((candidate) => (
+                <li key={candidate.id}>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="w-full">
+                      <h1 className="text-2xl font-semibold text-[#232323]">
+                        {candidate.full_name}
+                      </h1>
+
+                      <p className="mt-3 font-medium text-sm px-6 py-3 rounded-full w-fit border border-[#02C5C4]">
+                        {NOMINATIONS[candidate.nominations[0]?.nomination]}
+                      </p>
+
+                      <p
+                        onMouseEnter={(e) => {
+                          e.currentTarget.lastElementChild.classList.add(
+                            "block"
+                          );
+                          e.currentTarget.lastElementChild.classList.remove(
+                            "hidden"
+                          );
+                        }}
+                        onMouseLeave={(e) => {
+                          e.currentTarget.lastElementChild.classList.remove(
+                            "block"
+                          );
+                          e.currentTarget.lastElementChild.classList.add(
+                            "hidden"
+                          );
+                        }}
+                        className="relative last:block mt-4 font-medium text-[#232323]"
+                      >
+                        {String(candidate.bio).substring(0, 200)}...
+                        <span className="hidden z-40 overflow-y-auto h-52 absolute top-0 left-0 bg-white p-2 rounded-md shadow-lg">
+                          {candidate.bio}
+                        </span>
+                      </p>
+
+                      <div className="mt-4 font-medium text-[#232323]">
+                        <span>Проголосовали: </span>
+                        <span className="font-bold text-sm py-1.5 px-4 bg-[#02C5C4] text-white rounded-full">
+                          {candidate.nominations[0]?.votes}
+                        </span>
+                      </div>
+
+                      <ul className="mt-4 flex flex-col items-start gap-y-3">
+                        <li
+                          className="grid grid-cols-1"
+                          key={candidate.materials[0].id}
+                        >
+                          <a
+                            className="py-3 px-6 border text-ellipsis whitespace-nowrap overflow-hidden w-full rounded-full inline-block border-[#9A9A9A] font-medium text-[#232323]"
+                            href={candidate.materials[0].link}
+                          >
+                            {/* {extractDomain(candidate.materials[0])} */}
+                            {candidate.materials[0].link}
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+
+                    <div className="">
+                      {/* <img src={candidate.photo} alt="" /> */}
+                      <div className="w-full h-80 bg-slate-600"></div>
+                    </div>
+
+                    <button
+                      onClick={handleVote(
+                        candidate.id,
+                        candidate.nominations[0]?.nomination
+                      )}
+                      className="py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] col-start-1 col-end-3"
+                    >
+                      Проголосовать
+                    </button>
+                  </div>
+                </li>
+              ))}
         </ul>
       </main>
 

@@ -1,4 +1,4 @@
-export const API_URL = "https://gos-voter.herokuapp.com/";
+export const API_URL = "https://heimu69.pythonanywhere.com/";
 
 export const endpoints = {
   TOKEN: "api/v1/token/",
