@@ -230,9 +230,33 @@ export default function App() {
     [token.access]
   );
 
-  function handleVote(id) {
-    return () => {
-      id;
+  function handleVote(id, nomination) {
+    return async (event) => {
+      try {
+        const response = await axios.post(
+          API_URL + endpoints.VOTES,
+          { candidate_id: id, nomination },
+          {
+            headers: {
+              Authorization: `Bearer ${token.access}`,
+            },
+          }
+        );
+
+        if (response.data.message === "Голос успешно принят") {
+          const vote =
+            event.target.previousElementSibling.previousElementSibling
+              .firstChild.nextElementSibling.nextElementSibling
+              .nextElementSibling.firstChild.nextElementSibling.firstChild;
+          vote.textContent = Number(vote.textContent) + 1;
+        }
+      } catch (e) {
+        if (
+          e.response.data.message === "Вы уже проголосовали в данной номинации"
+        ) {
+          console.log("Вы уже проголосовали в данной номинации");
+        }
+      }
     };
   }
 
@@ -376,7 +400,7 @@ export default function App() {
           {candidates.map((candidate) => (
             <li key={candidate.id}>
               <div className="grid grid-cols-2 gap-4">
-                <div className="">
+                <div className="w-full">
                   <h1 className="text-2xl font-semibold text-[#232323]">
                     {candidate.full_name}
                   </h1>
@@ -385,8 +409,25 @@ export default function App() {
                     {NOMINATIONS[candidate.nominations[0]?.nomination]}
                   </p>
 
-                  <p className="mt-4 font-medium text-[#232323]">
-                    {candidate.bio}
+                  <p
+                    onMouseEnter={(e) => {
+                      e.currentTarget.lastElementChild.classList.add("block");
+                      e.currentTarget.lastElementChild.classList.remove(
+                        "hidden"
+                      );
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.lastElementChild.classList.remove(
+                        "block"
+                      );
+                      e.currentTarget.lastElementChild.classList.add("hidden");
+                    }}
+                    className="relative last:block mt-4 font-medium text-[#232323]"
+                  >
+                    {String(candidate.bio).substring(0, 200)}...
+                    <span className="hidden z-40 overflow-y-auto h-52 absolute top-0 left-0 bg-white p-2 rounded-md shadow-lg">
+                      {candidate.bio}
+                    </span>
                   </p>
 
                   <div className="mt-4 font-medium text-[#232323]">
@@ -397,16 +438,18 @@ export default function App() {
                   </div>
 
                   <ul className="mt-4 flex flex-col items-start gap-y-3">
-                    {candidate.materials.map((material) => (
-                      <li key={material.id}>
-                        <a
-                          className="py-3 px-6 border rounded-full inline-block border-[#9A9A9A] font-medium text-[#232323]"
-                          href={material.link}
-                        >
-                          {extractDomain(material.link)}
-                        </a>
-                      </li>
-                    ))}
+                    <li
+                      className="grid grid-cols-1"
+                      key={candidate.materials[0].id}
+                    >
+                      <a
+                        className="py-3 px-6 border text-ellipsis whitespace-nowrap overflow-hidden w-full rounded-full inline-block border-[#9A9A9A] font-medium text-[#232323]"
+                        href={candidate.materials[0].link}
+                      >
+                        {/* {extractDomain(candidate.materials[0])} */}
+                        {candidate.materials[0].link}
+                      </a>
+                    </li>
                   </ul>
                 </div>
 
@@ -416,7 +459,10 @@ export default function App() {
                 </div>
 
                 <button
-                  onClick={handleVote(candidate.id)}
+                  onClick={handleVote(
+                    candidate.id,
+                    candidate.nominations[0]?.nomination
+                  )}
                   className="py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] col-start-1 col-end-3"
                 >
                   Проголосовать
@@ -426,8 +472,6 @@ export default function App() {
           ))}
         </ul>
       </main>
-
-      {/* {isLoading ? "loading..." : "loaded!"} */}
 
       <LoginModal />
     </div>
