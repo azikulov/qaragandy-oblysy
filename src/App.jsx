@@ -17,10 +17,8 @@ function LoginModal() {
   const [filename, setFilename] = useState();
 
   const [formData, setFormData] = useState({
-    // phone: "",
-    // password: "",
-    phone: "+77770736981",
-    password: "leopoldfitz",
+    phone: "",
+    password: "",
   });
 
   // eslint-disable-next-line no-unused-vars
@@ -99,10 +97,10 @@ function LoginModal() {
   return (
     <div
       className={`${
-        isAuth ? "hidden" : ""
-      } bg-[#00000080] z-50 w-screen h-screen fixed top-0 grid place-items-center py-10 overflow-y-auto`}
+        isAuth ? "hidden" : "md:grid"
+      } bg-[#00000080] z-50 w-screen h-screen fixed top-0 md:place-items-center md:py-10 overflow-y-auto`}
     >
-      <div className="max-w-lg bg-white">
+      <div className="w-full max-md:h-full md:max-w-lg bg-white">
         <img src={LogoPng} alt="qaragandy oblysy logo" className="w-full" />
 
         <div className="p-6">
@@ -185,6 +183,7 @@ export default function App() {
   // const [nominations, setNominations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filteredCandidates, setFilteredCandidates] = useState([]);
+  const [selectedNominations, setSelectedNominations] = useState([]);
 
   const NOMINATIONS = {
     VER: "За верность профессии",
@@ -274,35 +273,21 @@ export default function App() {
     };
   }
 
-  function filterCandidates(filterBy) {
-    const filtered = [];
+  // function filterCandidates() {
+  //   const filtered = [];
 
-    // setFilteredCandidates([
-    //   ...candidates.filter(
-    //     (candidate) => candidate.nominations[0]?.nomination.includes(filterBy)
-    //     // filterBy.includes(candidate.nominations)
-    //   ),
-    // ]);
-    // setFilteredCandidates([
-    //   ...candidates.filter(
-    //     (candidate) => candidate.nominations[filterBy].nomination === filterBy
-    //   ),
-    // ]);
+  //   candidates.forEach((candidate) => {
+  //     candidate.nominations.forEach((nomination) => {
+  //       selectedFilters.forEach((selectedNomination) => {
+  //         if (nomination.nomination === selectedNomination) {
+  //           filtered.push(candidate);
+  //         }
+  //       });
+  //     });
+  //   });
 
-    console.log(
-      candidates.filter((candidate) => candidate.nominations[filterBy])
-    );
-
-    // for (const candidate in candidates) {
-    // }
-  }
-
-  // useEffect(() => {
-  //   if (isAuth) {
-  //     getCandidates();
-  //     getNominations();
-  //   }
-  // }, [getCandidates, isAuth, getNominations]);
+  //   setFilteredCandidates(filtered.length === 0 ? [] : filtered);
+  // }
 
   useEffect(() => {
     if (isAuth) {
@@ -312,7 +297,7 @@ export default function App() {
 
   return (
     <div>
-      <header className="sticky top-0 w-full bg-[#232323]">
+      {/* <header className="sticky top-0 w-full bg-[#232323]">
         <div className="px-4 md:px-6 lg:max-w-7xl mx-auto lg:px-10 py-2 flex justify-between items-center">
           <LogoSVG className="w-16 h-16" />
 
@@ -415,26 +400,34 @@ export default function App() {
 
           <button className="md:hidden"></button>
         </div>
-      </header>
+      </header> */}
 
       <main className="px-4 md:px-6 lg:max-w-7xl mx-auto lg:px-10 py-12">
         <h1 className="text-center text-4xl font-bold text-[#232323]">
           Номинации
         </h1>
-        <ul className="flex flex-wrap justify-center gap-x-6 gap-y-4 mt-5">
+        <ul className="flex flex-wrap justify-center max-md:flex-col max-md:items-center gap-x-6 gap-y-4 mt-5">
           {NOMINATIONS_LIST.map((nomination) => (
             <li key={nomination.name}>
               <label className="flex items-center gap-x-2.5">
                 <input
                   type="checkbox"
                   className="w-4 h-4 checked:accent-[#02C5C4]"
-                  onChange={(e) =>
-                    e.currentTarget.checked
-                      ? filterCandidates(nomination.name)
-                      : filterCandidates("")
-                  }
+                  onChange={(e) => {
+                    if (e.currentTarget.checked) {
+                      setSelectedNominations((prev) => {
+                        return [...prev, nomination.name];
+                      });
+                    } else {
+                      setSelectedNominations((prev) => {
+                        return [...prev.filter((i) => i !== nomination.name)];
+                      });
+                    }
+                  }}
                 />
-                <span className="text-[#232323]">{nomination.nomination}</span>
+                <span className="max-md:text-center text-[#232323]">
+                  {nomination.nomination}
+                </span>
               </label>
             </li>
           ))}
@@ -442,168 +435,182 @@ export default function App() {
 
         <div className="my-8 w-full bg-[#9A9A9A] h-[1px]"></div>
 
-        <ul className="grid grid-cols-2 gap-8">
-          {filteredCandidates.length
-            ? filteredCandidates.map((candidate) =>
+        <ul className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {selectedNominations.length
+            ? candidates.map((candidate) =>
                 candidate.nominations.map((nomination) => {
-                  return (
-                    <li key={nomination.id}>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="w-full">
-                          <h1 className="text-2xl font-semibold text-[#232323]">
-                            {candidate.full_name}
-                          </h1>
+                  if (selectedNominations.includes(nomination.nomination)) {
+                    return (
+                      <li key={nomination.id}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="w-full">
+                            <h1 className="text-2xl font-semibold text-[#232323] capitalize">
+                              {candidate.full_name}
+                            </h1>
 
-                          <p className="mt-3 font-medium text-sm px-6 py-3 rounded-full w-fit border border-[#02C5C4]">
-                            {NOMINATIONS[nomination.nomination]}
-                          </p>
+                            <p className="mt-3 font-medium text-sm px-6 py-3 rounded-full w-fit border border-[#02C5C4]">
+                              {NOMINATIONS[nomination.nomination]}
+                            </p>
 
-                          <p
-                            onMouseEnter={(e) => {
-                              e.currentTarget.lastElementChild.classList.add(
-                                "block"
-                              );
-                              e.currentTarget.lastElementChild.classList.remove(
-                                "hidden"
-                              );
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.lastElementChild.classList.remove(
-                                "block"
-                              );
-                              e.currentTarget.lastElementChild.classList.add(
-                                "hidden"
-                              );
-                            }}
-                            className="relative last:block mt-4 font-medium text-[#232323]"
-                          >
-                            {String(candidate.bio).substring(0, 200)}...
-                            <span className="hidden z-40 overflow-y-auto h-52 absolute top-0 left-0 bg-white p-2 rounded-md shadow-lg">
-                              {candidate.bio}
-                            </span>
-                          </p>
+                            <p
+                              onMouseEnter={(e) => {
+                                e.currentTarget.lastElementChild.classList.add(
+                                  "block"
+                                );
+                                e.currentTarget.lastElementChild.classList.remove(
+                                  "hidden"
+                                );
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.lastElementChild.classList.remove(
+                                  "block"
+                                );
+                                e.currentTarget.lastElementChild.classList.add(
+                                  "hidden"
+                                );
+                              }}
+                              className="relative last:block mt-4 font-medium text-[#232323]"
+                            >
+                              {String(candidate.bio).substring(0, 200)}...
+                              <span className="hidden z-40 overflow-y-auto h-52 absolute top-0 left-0 bg-white p-2 rounded-md shadow-lg">
+                                {candidate.bio}
+                              </span>
+                            </p>
 
-                          <div className="mt-4 font-medium text-[#232323]">
-                            <span>Проголосовали: </span>
-                            <span className="font-bold text-sm py-1.5 px-4 bg-[#02C5C4] text-white rounded-full">
-                              {nomination.votes}
-                            </span>
+                            <div className="mt-4 font-medium text-[#232323]">
+                              <span>Проголосовали: </span>
+                              <span className="font-bold text-sm py-1.5 px-4 bg-[#02C5C4] text-white rounded-full">
+                                {nomination.votes}
+                              </span>
+                            </div>
+
+                            <ul className="mt-4 flex flex-wrap gap-3 items-start">
+                              {candidate.materials.map((material, index) => (
+                                <li
+                                  className="grid grid-cols-1"
+                                  key={material.id}
+                                >
+                                  <a
+                                    className="w-10 h-10 grid place-items-center border rounded-full border-[#9A9A9A] font-medium text-[#232323]"
+                                    href={material.link}
+                                  >
+                                    {index + 1}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
                           </div>
 
-                          <ul className="mt-4 flex flex-col items-start gap-y-3">
-                            <li
-                              className="grid grid-cols-1"
-                              key={candidate.materials[0].id}
-                            >
-                              <a
-                                className="py-3 px-6 border text-ellipsis whitespace-nowrap overflow-hidden w-full rounded-full inline-block border-[#9A9A9A] font-medium text-[#232323]"
-                                href={candidate.materials[0].link}
-                              >
-                                {/* {extractDomain(candidate.materials[0])} */}
-                                {candidate.materials[0].link}
-                              </a>
-                            </li>
-                          </ul>
-                        </div>
+                          <div className="max-md:row-start-1">
+                            <img
+                              className="rounded-xl"
+                              src={candidate.photo}
+                              alt=""
+                            />
+                          </div>
 
-                        <div className="">
-                          <img src={candidate.photo} alt="" />
+                          <button
+                            onClick={handleVote(
+                              candidate.id,
+                              nomination.nomination
+                            )}
+                            className="py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] sm:col-start-1 sm:col-end-3"
+                          >
+                            Проголосовать
+                          </button>
                         </div>
-
-                        <button
-                          onClick={handleVote(
-                            candidate.id,
-                            nomination.nomination
-                          )}
-                          className="py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] col-start-1 col-end-3"
-                        >
-                          Проголосовать
-                        </button>
-                      </div>
-                    </li>
-                  );
+                      </li>
+                    );
+                  }
                 })
               )
             : candidates.map((candidate) =>
-                candidate.nominations.map((nomination) => {
-                  return (
-                    <li key={nomination.id}>
-                      <div className="grid grid-cols-2 gap-4">
-                        <div className="w-full">
-                          <h1 className="text-2xl font-semibold text-[#232323]">
-                            {candidate.full_name}
-                          </h1>
+                candidate.nominations.map(
+                  (nomination) => {
+                    return (
+                      <li key={nomination.id}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="w-full">
+                            <h1 className="text-2xl font-semibold text-[#232323] capitalize">
+                              {candidate.full_name}
+                            </h1>
 
-                          <p className="mt-3 font-medium text-sm px-6 py-3 rounded-full w-fit border border-[#02C5C4]">
-                            {NOMINATIONS[nomination.nomination]}
-                          </p>
+                            <p className="mt-3 font-medium text-sm px-6 py-3 rounded-full w-fit border border-[#02C5C4]">
+                              {NOMINATIONS[nomination.nomination]}
+                            </p>
 
-                          <p
-                            onMouseEnter={(e) => {
-                              e.currentTarget.lastElementChild.classList.add(
-                                "block"
-                              );
-                              e.currentTarget.lastElementChild.classList.remove(
-                                "hidden"
-                              );
-                            }}
-                            onMouseLeave={(e) => {
-                              e.currentTarget.lastElementChild.classList.remove(
-                                "block"
-                              );
-                              e.currentTarget.lastElementChild.classList.add(
-                                "hidden"
-                              );
-                            }}
-                            className="relative last:block mt-4 font-medium text-[#232323]"
-                          >
-                            {String(candidate.bio).substring(0, 200)}...
-                            <span className="hidden z-40 overflow-y-auto h-52 absolute top-0 left-0 bg-white p-2 rounded-md shadow-lg">
-                              {candidate.bio}
-                            </span>
-                          </p>
+                            <p
+                              onMouseEnter={(e) => {
+                                e.currentTarget.lastElementChild.classList.add(
+                                  "block"
+                                );
+                                e.currentTarget.lastElementChild.classList.remove(
+                                  "hidden"
+                                );
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.lastElementChild.classList.remove(
+                                  "block"
+                                );
+                                e.currentTarget.lastElementChild.classList.add(
+                                  "hidden"
+                                );
+                              }}
+                              className="relative last:block mt-4 font-medium text-[#232323]"
+                            >
+                              {String(candidate.bio).substring(0, 200)}...
+                              <span className="hidden z-40 overflow-y-auto h-52 absolute top-0 left-0 bg-white p-2 rounded-md shadow-lg">
+                                {candidate.bio}
+                              </span>
+                            </p>
 
-                          <div className="mt-4 font-medium text-[#232323]">
-                            <span>Проголосовали: </span>
-                            <span className="font-bold text-sm py-1.5 px-4 bg-[#02C5C4] text-white rounded-full">
-                              {nomination.votes}
-                            </span>
+                            <div className="mt-4 font-medium text-[#232323]">
+                              <span>Проголосовали: </span>
+                              <span className="font-bold text-sm py-1.5 px-4 bg-[#02C5C4] text-white rounded-full">
+                                {nomination.votes}
+                              </span>
+                            </div>
+
+                            <ul className="mt-4 flex flex-wrap gap-3 items-start">
+                              {candidate.materials.map((material, index) => (
+                                <li
+                                  className="grid grid-cols-1"
+                                  key={material.id}
+                                >
+                                  <a
+                                    className="w-10 h-10 grid place-items-center border rounded-full border-[#9A9A9A] font-medium text-[#232323]"
+                                    href={material.link}
+                                  >
+                                    {index + 1}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
                           </div>
 
-                          <ul className="mt-4 flex flex-col items-start gap-y-3">
-                            <li
-                              className="grid grid-cols-1"
-                              key={candidate.materials[0].id}
-                            >
-                              <a
-                                className="py-3 px-6 border text-ellipsis whitespace-nowrap overflow-hidden w-full rounded-full inline-block border-[#9A9A9A] font-medium text-[#232323]"
-                                href={candidate.materials[0].link}
-                              >
-                                {/* {extractDomain(candidate.materials[0])} */}
-                                {candidate.materials[0].link}
-                              </a>
-                            </li>
-                          </ul>
-                        </div>
+                          <div className="max-md:row-start-1">
+                            <img
+                              className="rounded-xl"
+                              src={candidate.photo}
+                              alt=""
+                            />
+                          </div>
 
-                        <div className="">
-                          <img src={candidate.photo} alt="" />
-                          {/* <div className="w-full h-80 bg-slate-600"></div> */}
+                          <button
+                            onClick={handleVote(
+                              candidate.id,
+                              nomination.nomination
+                            )}
+                            className="py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] sm:col-start-1 sm:col-end-3"
+                          >
+                            Проголосовать
+                          </button>
                         </div>
-
-                        <button
-                          onClick={handleVote(
-                            candidate.id,
-                            nomination.nomination
-                          )}
-                          className="py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] col-start-1 col-end-3"
-                        >
-                          Проголосовать
-                        </button>
-                      </div>
-                    </li>
-                  );
-                })
+                      </li>
+                    );
+                  }
+                  // })
+                )
               )}
         </ul>
       </main>
