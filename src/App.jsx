@@ -100,7 +100,7 @@ function LoginModal() {
         isAuth ? "hidden" : "md:grid"
       } bg-[#00000080] z-50 w-screen h-screen fixed top-0 md:place-items-center md:py-10 overflow-y-auto`}
     >
-      <div className="w-full max-md:h-full md:max-w-lg bg-white">
+      <div className="w-full md:max-w-lg bg-white">
         <img src={LogoPng} alt="qaragandy oblysy logo" className="w-full" />
 
         <div className="p-6">
