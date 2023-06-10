@@ -141,8 +141,8 @@ function LoginModal() {
             </p>
 
             <input
-              // type="password"
-              type="text"
+              type="password"
+              // type="text"
               placeholder="**********"
               className="p-3 text-[#232323] border rounded-2xl border-[#9A9A9A]"
               onChange={(event) => {
