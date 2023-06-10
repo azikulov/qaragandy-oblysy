@@ -1,24 +1,25 @@
-// TODO
-
-// 1. Необходимо сделать адаптивную верстку шапки сайта
-
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
 
 import { API_URL, endpoints } from "./config";
 import { useTokenContext } from "./context/token";
 import { useAuthContext } from "./context/auth";
 import LogoPng from "./assets/logo.png";
-import LogoSVG from "./assets/logo";
+import { Trans, useTranslation } from "react-i18next";
 
 function LoginModal() {
+  const { t } = useTranslation();
+
   const [localToken, setLocalToken] = useState({ access: null, refresh: null });
-  // const filename = useRef(null);
   const [filename, setFilename] = useState();
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(false);
 
   const [formData, setFormData] = useState({
-    phone: "",
-    password: "",
+    // phone: "",
+    // password: "",
+    phone: "+77770736981",
+    password: "leopoldfitz",
   });
 
   // eslint-disable-next-line no-unused-vars
@@ -70,27 +71,36 @@ function LoginModal() {
   }
 
   async function handleSubmit() {
-    const verifiedToken = await getToken({
-      phone: formData.phone,
-      password: formData.password,
-    });
-
-    // Сохраняем токен в глобальное состояние
-    updateToken(verifiedToken);
+    setIsLoading(true);
+    setError(false);
 
     try {
+      const verifiedToken = await getToken({
+        phone: formData.phone,
+        password: formData.password,
+      });
+
+      // Сохраняем токен в глобальное состояние
+      updateToken(verifiedToken);
+
       const response = await sendCertificate({
         accessToken: verifiedToken.access,
       });
 
       if (response.status === 200) {
+        setIsLoading(false);
         return updateAuth(true);
       }
+      setError(true);
       return updateAuth(false);
     } catch (e) {
       if (e.response.data.message === "Удостоверение уже имеется") {
+        setIsLoading(false);
         return updateAuth(true);
       }
+
+      setIsLoading(false);
+      setError(true);
     }
   }
 
@@ -98,56 +108,64 @@ function LoginModal() {
     <div
       className={`${
         isAuth ? "hidden" : "md:grid"
-      } bg-[#00000080] z-50 w-screen h-screen fixed top-0 md:place-items-center md:py-10 overflow-y-auto`}
+      } bg-[#00000080] z-50 w-screen fixed top-0 md:place-items-center md:py-10 overflow-y-auto`}
     >
       <div className="w-full max-md:h-full md:max-w-lg bg-white">
         <img src={LogoPng} alt="qaragandy oblysy logo" className="w-full" />
 
         <div className="p-6">
           <h1 className="text-center font-bold text-2xl text-[#232323]">
-            Логин
+            <Trans>Логин</Trans>
           </h1>
 
           <div className="flex flex-col gap-3 mt-4">
-            <p className="text-[#232323]">Номер телефона</p>
+            <p className="text-[#232323]">
+              <Trans>Номер телефона</Trans>
+            </p>
 
             <input
               inputMode="tel"
               placeholder="+7 777 123 45 67"
               className="p-3 text-[#232323] border rounded-2xl border-[#9A9A9A]"
-              onChange={(event) =>
-                setFormData((prev) => ({ ...prev, phone: event.target.value }))
-              }
+              onChange={(event) => {
+                setFormData((prev) => ({ ...prev, phone: event.target.value }));
+                if (error) setError(false);
+              }}
               value={formData.phone}
             />
           </div>
 
           <div className="flex flex-col gap-3 mt-4">
-            <p className="text-[#232323]">Пароль</p>
+            <p className="text-[#232323]">
+              <Trans>Пароль</Trans>
+            </p>
 
             <input
               // type="password"
               type="text"
               placeholder="**********"
               className="p-3 text-[#232323] border rounded-2xl border-[#9A9A9A]"
-              onChange={(event) =>
+              onChange={(event) => {
                 setFormData((prev) => ({
                   ...prev,
                   password: event.target.value,
-                }))
-              }
+                }));
+                if (error) setError(false);
+              }}
               value={formData.password}
             />
           </div>
 
           <div className="flex flex-col items-start gap-3 mt-4">
-            <p className="text-[#232323]">Копия удостоверения журналиста</p>
+            <p className="text-[#232323]">
+              <Trans>Копия удостоверения журналиста</Trans>
+            </p>
 
             <label
               htmlFor="file"
-              className="px-6 py-2.5 rounded-full cursor-pointer text-white bg-[#02C5C4]"
+              className="transition duration-200 hover:bg-[#01abab] px-6 py-2.5 rounded-full cursor-pointer text-white bg-[#02C5C4]"
             >
-              {filename ? filename.name : "Загрузить файлы"}
+              {filename ? filename.name : t("Загрузить файлы")}
             </label>
 
             <input
@@ -160,14 +178,19 @@ function LoginModal() {
 
           <button
             onClick={handleSubmit}
-            className="py-3 w-full mt-4 rounded-full font-bold text-white bg-[#02C5C4]"
+            disabled={isLoading}
+            className={`${isLoading ? "opacity-50" : ""} ${
+              error ? "hover:bg-[#e11b32] bg-[#ef233c] stroke-error" : ""
+            } transition duration-200 stroke hover:bg-[#01abab] py-3 w-full mt-4 rounded-full font-bold text-white bg-[#02C5C4]`}
           >
-            ВОЙТИ
+            <Trans>ВОЙТИ</Trans>
           </button>
 
           <p className="mt-4 text-sm text-center text-[#232323]">
-            Нажимая на кнопку, вы даете согласие на сбор и обработку ваших
-            персональных данных
+            <Trans>
+              Нажимая на кнопку, вы даете согласие на сбор и обработку ваших
+              персональных данных
+            </Trans>
           </p>
         </div>
       </div>
@@ -176,13 +199,13 @@ function LoginModal() {
 }
 
 export default function App() {
+  const { t, i18n } = useTranslation();
+
   const { token } = useTokenContext();
   const { isAuth } = useAuthContext();
 
   const [candidates, setCadidates] = useState([]);
-  // const [nominations, setNominations] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filteredCandidates, setFilteredCandidates] = useState([]);
   const [selectedNominations, setSelectedNominations] = useState([]);
 
   const NOMINATIONS = {
@@ -222,26 +245,14 @@ export default function App() {
             Authorization: `Bearer ${token.access}`,
           },
         })
-        .then((response) => setCadidates(response.data))
+        .then((response) => {
+          setCadidates(response.data);
+        })
         .catch((error) => console.log(error))
         .finally(() => setIsLoading(false));
     },
     [token.access]
   );
-
-  // const getNominations = useCallback(
-  //   async function () {
-  //     return await axios
-  //       .get(API_URL + endpoints.NOMINATIONS, {
-  //         headers: {
-  //           Authorization: `Bearer ${token.access}`,
-  //         },
-  //       })
-  //       .then((response) => setNominations(response.data))
-  //       .catch((error) => console.log(error));
-  //   },
-  //   [token.access]
-  // );
 
   function handleVote(id, nomination) {
     return async (event) => {
@@ -273,21 +284,11 @@ export default function App() {
     };
   }
 
-  // function filterCandidates() {
-  //   const filtered = [];
-
-  //   candidates.forEach((candidate) => {
-  //     candidate.nominations.forEach((nomination) => {
-  //       selectedFilters.forEach((selectedNomination) => {
-  //         if (nomination.nomination === selectedNomination) {
-  //           filtered.push(candidate);
-  //         }
-  //       });
-  //     });
-  //   });
-
-  //   setFilteredCandidates(filtered.length === 0 ? [] : filtered);
-  // }
+  function switchLanguage(language) {
+    return () => {
+      i18n.changeLanguage(language);
+    };
+  }
 
   useEffect(() => {
     if (isAuth) {
@@ -404,13 +405,15 @@ export default function App() {
 
       <main className="px-4 md:px-6 lg:max-w-7xl mx-auto lg:px-10 py-12">
         <h1 className="text-center text-4xl font-bold text-[#232323]">
-          Номинации
+          <Trans>Номинации</Trans>
         </h1>
+
         <ul className="flex flex-wrap justify-center max-md:flex-col max-md:items-center gap-x-6 gap-y-4 mt-5">
           {NOMINATIONS_LIST.map((nomination) => (
             <li key={nomination.name}>
-              <label className="flex items-center gap-x-2.5">
+              <label className="filter-button">
                 <input
+                  hidden
                   type="checkbox"
                   className="w-4 h-4 checked:accent-[#02C5C4]"
                   onChange={(e) => {
@@ -425,193 +428,220 @@ export default function App() {
                     }
                   }}
                 />
-                <span className="max-md:text-center text-[#232323]">
-                  {nomination.nomination}
+                <span className="max-md:text-center  text-[#232323]">
+                  <Trans>{nomination.nomination}</Trans>
                 </span>
               </label>
             </li>
           ))}
         </ul>
 
+        <div className="flex justify-center mt-4 gap-x-4 text-[#232323]">
+          <button
+            onClick={switchLanguage("ru")}
+            className={`${
+              i18n.language === "ru" && "bg-[#02C5C4] text-white"
+            } px-4 py-1.5 rounded-md font-semibold text-sm transition duration-200 bg-[#02C5C41c] text-[#02C5C4] active:bg-[#02C5C4] active:text-white shadow-sm hover:bg-[#02c5c533]`}
+          >
+            <Trans>Русский</Trans>
+          </button>
+          <button
+            onClick={switchLanguage("kz")}
+            className={`${
+              i18n.language === "kz" && "bg-[#02C5C4] text-white"
+            } px-4 py-1.5 rounded-md font-semibold text-sm transition duration-200 bg-[#02C5C41c] text-[#02C5C4] active:bg-[#02C5C4] active:text-white shadow-sm hover:bg-[#02c5c533]`}
+          >
+            <Trans>Казахский</Trans>
+          </button>
+        </div>
+
         <div className="my-8 w-full bg-[#9A9A9A] h-[1px]"></div>
 
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {selectedNominations.length
-            ? candidates.map((candidate) =>
-                candidate.nominations.map((nomination) => {
-                  if (selectedNominations.includes(nomination.nomination)) {
-                    return (
-                      <li key={nomination.id}>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="w-full">
-                            <h1 className="text-2xl font-semibold text-[#232323] capitalize">
-                              {candidate.full_name}
-                            </h1>
+          {!isLoading
+            ? selectedNominations.length
+              ? candidates.map((candidate) =>
+                  candidate.nominations.map((nomination) => {
+                    if (selectedNominations.includes(nomination.nomination)) {
+                      return (
+                        <li key={nomination.id}>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="w-full">
+                              <h1 className="text-2xl font-semibold text-[#232323] capitalize">
+                                <Trans>{candidate.full_name}</Trans>
+                              </h1>
 
-                            <p className="mt-3 font-medium text-sm px-6 py-3 rounded-full w-fit border border-[#02C5C4]">
-                              {NOMINATIONS[nomination.nomination]}
-                            </p>
+                              <p className="mt-3 font-medium text-sm px-6 py-3 rounded-full w-fit border border-[#02C5C4]">
+                                <Trans>
+                                  {NOMINATIONS[nomination.nomination]}
+                                </Trans>
+                              </p>
 
-                            <p
-                              onMouseEnter={(e) => {
-                                e.currentTarget.lastElementChild.classList.add(
-                                  "block"
-                                );
-                                e.currentTarget.lastElementChild.classList.remove(
-                                  "hidden"
-                                );
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.lastElementChild.classList.remove(
-                                  "block"
-                                );
-                                e.currentTarget.lastElementChild.classList.add(
-                                  "hidden"
-                                );
-                              }}
-                              className="relative last:block mt-4 font-medium text-[#232323]"
-                            >
-                              {String(candidate.bio).substring(0, 200)}...
-                              <span className="hidden z-40 overflow-y-auto h-52 absolute top-0 left-0 bg-white p-2 rounded-md shadow-lg">
-                                {candidate.bio}
-                              </span>
-                            </p>
+                              <p
+                                onMouseEnter={(e) => {
+                                  e.currentTarget.lastElementChild.classList.add(
+                                    "block"
+                                  );
+                                  e.currentTarget.lastElementChild.classList.remove(
+                                    "hidden"
+                                  );
+                                }}
+                                onMouseLeave={(e) => {
+                                  e.currentTarget.lastElementChild.classList.remove(
+                                    "block"
+                                  );
+                                  e.currentTarget.lastElementChild.classList.add(
+                                    "hidden"
+                                  );
+                                }}
+                                className="relative last:block mt-4 font-medium text-[#232323]"
+                              >
+                                {String(t("candidate.bio")).substring(0, 200)}
+                                ...
+                                <span className="hidden z-40 overflow-y-auto h-52 absolute top-0 left-0 bg-white p-2 rounded-md shadow-lg">
+                                  <Trans>{candidate.bio}</Trans>
+                                </span>
+                              </p>
 
-                            <div className="mt-4 font-medium text-[#232323]">
-                              <span>Проголосовали: </span>
-                              <span className="font-bold text-sm py-1.5 px-4 bg-[#02C5C4] text-white rounded-full">
-                                {nomination.votes}
-                              </span>
+                              <div className="mt-4 font-medium text-[#232323]">
+                                <span>
+                                  <Trans>Проголосовали</Trans>:{" "}
+                                </span>
+                                <span className="font-bold text-sm py-1.5 px-4 bg-[#02C5C4] text-white rounded-full">
+                                  {nomination.votes}
+                                </span>
+                              </div>
+
+                              <ul className="mt-4 flex flex-wrap gap-3 items-start">
+                                {candidate.materials.map((material, index) => (
+                                  <li
+                                    className="grid grid-cols-1"
+                                    key={material.id}
+                                  >
+                                    <a
+                                      className="w-10 h-10 grid place-items-center border rounded-full border-[#9A9A9A] font-medium text-[#232323]"
+                                      href={material.link}
+                                    >
+                                      {index + 1}
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
                             </div>
 
-                            <ul className="mt-4 flex flex-wrap gap-3 items-start">
-                              {candidate.materials.map((material, index) => (
-                                <li
-                                  className="grid grid-cols-1"
-                                  key={material.id}
-                                >
-                                  <a
-                                    className="w-10 h-10 grid place-items-center border rounded-full border-[#9A9A9A] font-medium text-[#232323]"
-                                    href={material.link}
-                                  >
-                                    {index + 1}
-                                  </a>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-
-                          <div className="max-md:row-start-1">
-                            <img
-                              className="rounded-xl"
-                              src={candidate.photo}
-                              alt=""
-                            />
-                          </div>
-
-                          <button
-                            onClick={handleVote(
-                              candidate.id,
-                              nomination.nomination
-                            )}
-                            className="py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] sm:col-start-1 sm:col-end-3"
-                          >
-                            Проголосовать
-                          </button>
-                        </div>
-                      </li>
-                    );
-                  }
-                })
-              )
-            : candidates.map((candidate) =>
-                candidate.nominations.map(
-                  (nomination) => {
-                    return (
-                      <li key={nomination.id}>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="w-full">
-                            <h1 className="text-2xl font-semibold text-[#232323] capitalize">
-                              {candidate.full_name}
-                            </h1>
-
-                            <p className="mt-3 font-medium text-sm px-6 py-3 rounded-full w-fit border border-[#02C5C4]">
-                              {NOMINATIONS[nomination.nomination]}
-                            </p>
-
-                            <p
-                              onMouseEnter={(e) => {
-                                e.currentTarget.lastElementChild.classList.add(
-                                  "block"
-                                );
-                                e.currentTarget.lastElementChild.classList.remove(
-                                  "hidden"
-                                );
-                              }}
-                              onMouseLeave={(e) => {
-                                e.currentTarget.lastElementChild.classList.remove(
-                                  "block"
-                                );
-                                e.currentTarget.lastElementChild.classList.add(
-                                  "hidden"
-                                );
-                              }}
-                              className="relative last:block mt-4 font-medium text-[#232323]"
-                            >
-                              {String(candidate.bio).substring(0, 200)}...
-                              <span className="hidden z-40 overflow-y-auto h-52 absolute top-0 left-0 bg-white p-2 rounded-md shadow-lg">
-                                {candidate.bio}
-                              </span>
-                            </p>
-
-                            <div className="mt-4 font-medium text-[#232323]">
-                              <span>Проголосовали: </span>
-                              <span className="font-bold text-sm py-1.5 px-4 bg-[#02C5C4] text-white rounded-full">
-                                {nomination.votes}
-                              </span>
+                            <div className="max-md:row-start-1">
+                              <img
+                                className="rounded-xl"
+                                src={candidate.photo}
+                                alt=""
+                              />
                             </div>
 
-                            <ul className="mt-4 flex flex-wrap gap-3 items-start">
-                              {candidate.materials.map((material, index) => (
-                                <li
-                                  className="grid grid-cols-1"
-                                  key={material.id}
-                                >
-                                  <a
-                                    className="w-10 h-10 grid place-items-center border rounded-full border-[#9A9A9A] font-medium text-[#232323]"
-                                    href={material.link}
-                                  >
-                                    {index + 1}
-                                  </a>
-                                </li>
-                              ))}
-                            </ul>
+                            <button
+                              onClick={handleVote(
+                                candidate.id,
+                                nomination.nomination
+                              )}
+                              className="py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] sm:col-start-1 sm:col-end-3"
+                            >
+                              <Trans>Проголосовать</Trans>
+                            </button>
                           </div>
-
-                          <div className="max-md:row-start-1">
-                            <img
-                              className="rounded-xl"
-                              src={candidate.photo}
-                              alt=""
-                            />
-                          </div>
-
-                          <button
-                            onClick={handleVote(
-                              candidate.id,
-                              nomination.nomination
-                            )}
-                            className="py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] sm:col-start-1 sm:col-end-3"
-                          >
-                            Проголосовать
-                          </button>
-                        </div>
-                      </li>
-                    );
-                  }
-                  // })
+                        </li>
+                      );
+                    }
+                  })
                 )
-              )}
+              : candidates.map((candidate) =>
+                  candidate.nominations.map((nomination) => {
+                    return (
+                      <li key={nomination.id}>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="w-full">
+                            <h1 className="text-2xl font-semibold text-[#232323] capitalize">
+                              <Trans>{candidate.full_name}</Trans>
+                            </h1>
+
+                            <p className="mt-3 font-medium text-sm px-6 py-3 rounded-full w-fit border border-[#02C5C4]">
+                              <Trans>
+                                {NOMINATIONS[nomination.nomination]}
+                              </Trans>
+                            </p>
+
+                            <p
+                              onMouseEnter={(e) => {
+                                e.currentTarget.lastElementChild.classList.add(
+                                  "block"
+                                );
+                                e.currentTarget.lastElementChild.classList.remove(
+                                  "hidden"
+                                );
+                              }}
+                              onMouseLeave={(e) => {
+                                e.currentTarget.lastElementChild.classList.remove(
+                                  "block"
+                                );
+                                e.currentTarget.lastElementChild.classList.add(
+                                  "hidden"
+                                );
+                              }}
+                              className="relative last:block mt-4 font-medium text-[#232323]"
+                            >
+                              {String(t(candidate.bio)).substring(0, 200)}...
+                              <span className="hidden z-40 overflow-y-auto h-52 absolute top-0 left-0 bg-white p-2 rounded-md shadow-lg">
+                                <Trans>{candidate.bio}</Trans>
+                              </span>
+                            </p>
+
+                            <div className="mt-4 font-medium text-[#232323]">
+                              <span>
+                                <Trans>Проголосовали</Trans>:{" "}
+                              </span>
+                              <span className="font-bold text-sm py-1.5 px-4 bg-[#02C5C4] text-white rounded-full">
+                                {nomination.votes}
+                              </span>
+                            </div>
+
+                            <ul className="mt-4 flex flex-wrap gap-3 items-start">
+                              {candidate.materials.map((material, index) => (
+                                <li
+                                  className="grid grid-cols-1"
+                                  key={material.id}
+                                >
+                                  <a
+                                    className="w-10 h-10 grid place-items-center border rounded-full border-[#9A9A9A] font-medium text-[#232323]"
+                                    href={material.link}
+                                  >
+                                    {index + 1}
+                                  </a>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+
+                          <div className="max-md:row-start-1">
+                            <img
+                              className="rounded-xl"
+                              src={candidate.photo}
+                              alt=""
+                            />
+                          </div>
+
+                          <button
+                            onClick={handleVote(
+                              candidate.id,
+                              nomination.nomination
+                            )}
+                            className="py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] sm:col-start-1 sm:col-end-3 transition duration-200 stroke hover:bg-[#01abab]"
+                          >
+                            <Trans>Проголосовать</Trans>
+                          </button>
+                        </div>
+                      </li>
+                    );
+                  })
+                )
+            : ""}
         </ul>
       </main>
 

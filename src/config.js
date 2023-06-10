@@ -9,3 +9,11 @@ export const endpoints = {
   NOMINATIONS: "api/v1/nominations/",
   VOTES: "api/v1/votes/",
 };
+
+export const resourcesTranslate = {
+  kz: {
+    translation: {
+      Номинации: "Номинациялар",
+    },
+  },
+};

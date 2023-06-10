@@ -1,3 +1,28 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+* {
+  font-family: "Inter", sans-serif;
+}
+
+.filter-button {
+  @apply flex items-center gap-x-2.5;
+}
+
+.filter-button span {
+  @apply bg-[#02C5C422] text-[#02C5C4] transition duration-200 font-medium cursor-pointer px-4 py-1.5 rounded-lg;
+}
+
+.filter-button > input:checked ~ span {
+  @apply bg-[#02C5C4] text-white;
+}
+
+.stroke:focus {
+  box-shadow: 0 0 0 0.25rem #02c5c460;
+}
+
+.stroke-error:focus {
+  box-shadow: 0 0 0 0.25rem #ef233c60;
+}
