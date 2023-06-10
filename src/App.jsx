@@ -496,7 +496,7 @@ export default function App() {
                                 }}
                                 className="relative last:block mt-4 font-medium text-[#232323]"
                               >
-                                {String(t("candidate.bio")).substring(0, 200)}
+                                {String(t(candidate.bio)).substring(0, 200)}
                                 ...
                                 <span className="hidden z-40 overflow-y-auto h-52 absolute top-0 left-0 bg-white p-2 rounded-md shadow-lg">
                                   <Trans>{candidate.bio}</Trans>
