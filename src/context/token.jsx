@@ -4,11 +4,11 @@ const initialState = { access: null, refresh: null };
 
 const TokenContext = createContext();
 
-export function useTokenContext() {
+function useTokenContext() {
   return useContext(TokenContext);
 }
 
-export function TokenContextProvider({ children }) {
+function TokenContextProvider({ children }) {
   const [state, setState] = useState(initialState);
 
   function updateToken({ access, refresh }) {
@@ -21,3 +21,5 @@ export function TokenContextProvider({ children }) {
     </TokenContext.Provider>
   );
 }
+
+export { useTokenContext, TokenContextProvider };

@@ -27,11 +27,15 @@ function LoginModal() {
   const { isAuth, updateAuth } = useAuthContext();
 
   async function getToken({ phone, password }) {
-    if (localToken.access && localToken.refresh) {
+    if (
+      (localToken.access && localToken.refresh) ||
+      (localStorage.getItem("accessToken") !== "null" &&
+        localStorage.getItem("refreshToken") !== "null")
+    ) {
       try {
         // Делаем запрос на валидный токен
         await axios.post(API_URL + endpoints.TOKEN_VERIFY, {
-          token: localToken.access,
+          token: localStorage.getItem("accessToken") || localToken.access,
         });
       } catch (e) {
         // Вернет 401, если токен устарел
@@ -42,6 +46,8 @@ function LoginModal() {
           });
 
           setLocalToken(newToken.data);
+          localStorage.setItem("accessToken", newToken.data.access);
+          localStorage.setItem("refreshToken", newToken.data.refresh);
           return newToken.data;
         }
       }
@@ -55,6 +61,8 @@ function LoginModal() {
     });
 
     setLocalToken(response.data);
+    localStorage.setItem("accessToken", response.data.access);
+    localStorage.setItem("refreshToken", response.data.refresh);
 
     return response.data;
   }
@@ -82,17 +90,24 @@ function LoginModal() {
 
       // Сохраняем токен в глобальное состояние
       updateToken(verifiedToken);
+      localStorage.setItem("accessToken", verifiedToken.access);
+      localStorage.setItem("refreshToken", verifiedToken.refresh);
 
-      const response = await sendCertificate({
-        accessToken: verifiedToken.access,
-      });
+      if (filename) {
+        const response = await sendCertificate({
+          accessToken: verifiedToken.access,
+        });
 
-      if (response.status === 200) {
-        setIsLoading(false);
-        return updateAuth(true);
+        if (response.status === 200) {
+          setIsLoading(false);
+          return updateAuth(true);
+        }
+        setError(true);
+        return updateAuth(false);
       }
-      setError(true);
-      return updateAuth(false);
+
+      setIsLoading(false);
+      return updateAuth(true);
     } catch (e) {
       if (e.response.data.message === "Удостоверение уже имеется") {
         setIsLoading(false);
@@ -103,6 +118,15 @@ function LoginModal() {
       setError(true);
     }
   }
+
+  useEffect(() => {
+    if (
+      localStorage.getItem("accessToken") &&
+      localStorage.getItem("refreshToken")
+    ) {
+      updateAuth(true);
+    }
+  }, [updateAuth]);
 
   return (
     <div
@@ -141,8 +165,8 @@ function LoginModal() {
             </p>
 
             <input
-              // type="password"
-              type="text"
+              type="password"
+              // type="text"
               placeholder="**********"
               className="p-3 text-[#232323] border rounded-2xl border-[#9A9A9A]"
               onChange={(event) => {
@@ -202,7 +226,7 @@ export default function App() {
   const { t, i18n } = useTranslation();
 
   const { token } = useTokenContext();
-  const { isAuth } = useAuthContext();
+  const { isAuth, updateAuth } = useAuthContext();
 
   const [candidates, setCadidates] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -239,46 +263,55 @@ export default function App() {
 
   const getCandidates = useCallback(
     function () {
-      axios
-        .get(API_URL + endpoints.CANDIDATES, {
-          headers: {
-            Authorization: `Bearer ${token.access}`,
-          },
-        })
-        .then((response) => {
-          setCadidates(response.data);
-        })
-        .catch((error) => console.log(error))
-        .finally(() => setIsLoading(false));
+      if (
+        localStorage.getItem("accessToken") !== "null" &&
+        localStorage.getItem("refreshToken") !== "null"
+      )
+        axios
+          .get(API_URL + endpoints.CANDIDATES, {
+            headers: {
+              Authorization: `Bearer ${
+                token.access || localStorage.getItem("accessToken")
+              }`,
+            },
+          })
+          .then((response) => {
+            setCadidates(response.data);
+          })
+          .catch((error) => console.log(error))
+          .finally(() => setIsLoading(false));
+      else updateAuth(false);
     },
-    [token.access]
+    [token.access, updateAuth]
   );
 
   function handleVote(id, nomination) {
-    return async (event) => {
+    return async () => {
       try {
         const response = await axios.post(
           API_URL + endpoints.VOTES,
           { candidate_id: id, nomination },
           {
             headers: {
-              Authorization: `Bearer ${token.access}`,
+              Authorization: `Bearer ${
+                localStorage.getItem("accessToken") || token.access
+              }`,
             },
           }
         );
 
         if (response.data.message === "Голос успешно принят") {
-          const vote =
-            event.target.previousElementSibling.previousElementSibling
-              .firstChild.nextElementSibling.nextElementSibling
-              .nextElementSibling.firstChild.nextElementSibling.firstChild;
-          vote.textContent = Number(vote.textContent) + 1;
+          alert("Спасибо за голос!");
         }
       } catch (e) {
         if (
           e.response.data.error === "Вы уже проголосовали в данной номинации"
         ) {
           alert("Вы уже проголосовали в данной номинации");
+        }
+
+        if (e.response.data.error === "У вас нет голосов для голосования") {
+          alert("У вас нет голосов для голосования");
         }
       }
     };
@@ -503,15 +536,6 @@ export default function App() {
                                 </span>
                               </p>
 
-                              <div className="mt-4 font-medium text-[#232323]">
-                                <span>
-                                  <Trans>Проголосовали</Trans>:{" "}
-                                </span>
-                                <span className="font-bold text-sm py-1.5 px-4 bg-[#02C5C4] text-white rounded-full">
-                                  {nomination.votes}
-                                </span>
-                              </div>
-
                               <ul className="mt-4 flex flex-wrap gap-3 items-start">
                                 {candidate.materials.map((material, index) => (
                                   <li
@@ -593,27 +617,15 @@ export default function App() {
                               </span>
                             </p>
 
-                            <div className="mt-4 font-medium text-[#232323]">
-                              <span>
-                                <Trans>Проголосовали</Trans>:{" "}
-                              </span>
-                              <span className="font-bold text-sm py-1.5 px-4 bg-[#02C5C4] text-white rounded-full">
-                                {nomination.votes}
-                              </span>
-                            </div>
-
                             <ul className="mt-4 flex flex-wrap gap-3 items-start">
                               {candidate.materials.map((material, index) => (
                                 <li
                                   className="grid grid-cols-1"
                                   key={material.id}
                                 >
-                                  <a
-                                    className="w-10 h-10 grid place-items-center border rounded-full border-[#9A9A9A] font-medium text-[#232323]"
-                                    href={material.link}
-                                  >
+                                  <PopupLink to={material.link}>
                                     {index + 1}
-                                  </a>
+                                  </PopupLink>
                                 </li>
                               ))}
                             </ul>
@@ -646,6 +658,35 @@ export default function App() {
       </main>
 
       <LoginModal />
+    </div>
+  );
+}
+
+function PopupLink({ to, children }) {
+  const [isHovered, setIsHovered] = useState(false);
+
+  return (
+    <div className="relative">
+      <p
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`cursor-pointer w-10 h-10 grid place-items-center border rounded-full border-[#9A9A9A] font-medium text-[#232323]`}
+      >
+        {children}
+      </p>
+
+      <a
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`${
+          isHovered
+            ? "absolute top-0 left-0 shadow-md rounded-md px-3 py-2 z-10 block bg-white"
+            : "hidden"
+        } `}
+        href={to}
+      >
+        {to}
+      </a>
     </div>
   );
 }
