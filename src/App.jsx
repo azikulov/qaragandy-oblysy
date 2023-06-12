@@ -16,10 +16,10 @@ function LoginModal() {
   const [error, setError] = useState(false);
 
   const [formData, setFormData] = useState({
-    phone: "",
-    password: "",
-    // phone: "+77770736981",
-    // password: "leopoldfitz",
+    // phone: "",
+    // password: "",
+    phone: "+77770736981",
+    password: "leopoldfitz",
   });
 
   // eslint-disable-next-line no-unused-vars
@@ -29,20 +29,42 @@ function LoginModal() {
   async function getToken({ phone, password }) {
     if (
       (localToken.access && localToken.refresh) ||
-      (localStorage.getItem("accessToken") !== "null" &&
-        localStorage.getItem("refreshToken") !== "null")
+      (localStorage.getItem("accessToken") !== null &&
+        localStorage.getItem("refreshToken") !== null)
     ) {
       try {
         // Делаем запрос на валидный токен
+        if (localStorage.getItem("accessToken") === null) {
+          await axios.post(API_URL + endpoints.TOKEN_VERIFY, {
+            token: localToken.access,
+          });
+        }
+
+        console.log("localStorage");
+
         await axios.post(API_URL + endpoints.TOKEN_VERIFY, {
-          token: localStorage.getItem("accessToken") || localToken.access,
+          token: localStorage.getItem("accessToken"),
         });
       } catch (e) {
         // Вернет 401, если токен устарел
         if (e.response.status === 401) {
           // Делаем запрос чтобы обновить токен
+          if (localStorage.getItem("accessToken") === null) {
+            const newToken = await axios.post(
+              API_URL + endpoints.TOKEN_REFRESH,
+              {
+                refresh: localToken.refresh,
+              }
+            );
+
+            setLocalToken(newToken.data);
+            localStorage.setItem("accessToken", newToken.data.access);
+            localStorage.setItem("refreshToken", newToken.data.refresh);
+            return newToken.data;
+          }
+
           const newToken = await axios.post(API_URL + endpoints.TOKEN_REFRESH, {
-            refresh: localToken.refresh,
+            refresh: localStorage.getItem("refreshToken"),
           });
 
           setLocalToken(newToken.data);
@@ -92,6 +114,8 @@ function LoginModal() {
       updateToken(verifiedToken);
       localStorage.setItem("accessToken", verifiedToken.access);
       localStorage.setItem("refreshToken", verifiedToken.refresh);
+      localStorage.setItem("phone", formData.phone);
+      localStorage.setItem("password", formData.password);
 
       if (filename) {
         const response = await sendCertificate({
@@ -262,25 +286,40 @@ export default function App() {
   ];
 
   const getCandidates = useCallback(
-    function () {
+    async function () {
       if (
         localStorage.getItem("accessToken") !== "null" &&
         localStorage.getItem("refreshToken") !== "null"
-      )
-        axios
-          .get(API_URL + endpoints.CANDIDATES, {
-            headers: {
-              Authorization: `Bearer ${
-                token.access || localStorage.getItem("accessToken")
-              }`,
-            },
-          })
-          .then((response) => {
-            setCadidates(response.data);
-          })
-          .catch((error) => console.log(error))
-          .finally(() => setIsLoading(false));
-      else updateAuth(false);
+      ) {
+        try {
+          axios
+            .get(API_URL + endpoints.CANDIDATES, {
+              headers: {
+                Authorization: `Bearer ${
+                  token.access || localStorage.getItem("accessToken")
+                }`,
+              },
+            })
+            .then((response) => {
+              setCadidates(response.data);
+            })
+            .catch((error) => console.log(error))
+            .finally(() => setIsLoading(false));
+
+          setIsLoading(false);
+          return updateAuth(true);
+        } catch (e) {
+          const response = await axios.post(API_URL + endpoints.TOKEN, {
+            phone: localStorage.getItem("phone"),
+            password: localStorage.getItem("password"),
+          });
+
+          localStorage.setItem("accessToken", response.data.access);
+          localStorage.setItem("refreshToken", response.data.refresh);
+
+          setIsLoading(false);
+        }
+      } else updateAuth(false);
     },
     [token.access, updateAuth]
   );
@@ -503,13 +542,11 @@ export default function App() {
                               <h1 className="text-2xl font-semibold text-[#232323] capitalize">
                                 <Trans>{candidate.full_name}</Trans>
                               </h1>
-
                               <p className="mt-3 font-medium text-sm px-6 py-3 rounded-full w-fit border border-[#02C5C4]">
                                 <Trans>
                                   {NOMINATIONS[nomination.nomination]}
                                 </Trans>
                               </p>
-
                               <p
                                 onMouseEnter={(e) => {
                                   e.currentTarget.lastElementChild.classList.add(
@@ -535,19 +572,18 @@ export default function App() {
                                   <Trans>{candidate.bio}</Trans>
                                 </span>
                               </p>
-
-                              <ul className="mt-4 flex flex-wrap gap-3 items-start">
+                              <p className="mt-4 font-medium text-[#232323]">
+                                Материалы:{" "}
+                              </p>{" "}
+                              <ul className="mt-2 flex flex-wrap gap-3 items-start">
                                 {candidate.materials.map((material, index) => (
                                   <li
                                     className="grid grid-cols-1"
                                     key={material.id}
                                   >
-                                    <a
-                                      className="w-10 h-10 grid place-items-center border rounded-full border-[#9A9A9A] font-medium text-[#232323]"
-                                      href={material.link}
-                                    >
+                                    <PopupLink to={material.link}>
                                       {index + 1}
-                                    </a>
+                                    </PopupLink>
                                   </li>
                                 ))}
                               </ul>
@@ -617,7 +653,11 @@ export default function App() {
                               </span>
                             </p>
 
-                            <ul className="mt-4 flex flex-wrap gap-3 items-start">
+                            <p className="mt-4 font-medium text-[#232323]">
+                              Материалы:{" "}
+                            </p>
+
+                            <ul className="mt-2 flex flex-wrap gap-3 items-start">
                               {candidate.materials.map((material, index) => (
                                 <li
                                   className="grid grid-cols-1"
@@ -678,6 +718,7 @@ function PopupLink({ to, children }) {
       <a
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
+        target="_blank"
         className={`${
           isHovered
             ? "absolute top-0 left-0 shadow-md rounded-md px-3 py-2 z-10 block bg-white"
