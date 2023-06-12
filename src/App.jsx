@@ -16,10 +16,10 @@ function LoginModal() {
   const [error, setError] = useState(false);
 
   const [formData, setFormData] = useState({
-    // phone: "",
-    // password: "",
-    phone: "+77770736981",
-    password: "leopoldfitz",
+    phone: "",
+    password: "",
+    // phone: "+77770736981",
+    // password: "leopoldfitz",
   });
 
   // eslint-disable-next-line no-unused-vars
