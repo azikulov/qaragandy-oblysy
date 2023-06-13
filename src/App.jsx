@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import axios from "axios";
+import { Trans, useTranslation } from "react-i18next";
 
 import { API_URL, endpoints } from "./config";
 import { useTokenContext } from "./context/token";
 import { useAuthContext } from "./context/auth";
+import { useAlertContext } from "./context/alert";
+import { Alert } from "./components/Alert";
 import LogoPng from "./assets/logo.png";
-import { Trans, useTranslation } from "react-i18next";
 
 function LoginModal() {
   const { t } = useTranslation();
@@ -16,10 +18,10 @@ function LoginModal() {
   const [error, setError] = useState(false);
 
   const [formData, setFormData] = useState({
-    phone: "",
-    password: "",
-    // phone: "+77770736981",
-    // password: "leopoldfitz",
+    // phone: "",
+    // password: "",
+    phone: "+77770736981",
+    password: "leopoldfitz",
   });
 
   // eslint-disable-next-line no-unused-vars
@@ -251,6 +253,7 @@ export default function App() {
 
   const { token } = useTokenContext();
   const { isAuth, updateAuth } = useAuthContext();
+  const { toggleAlert } = useAlertContext();
 
   const [candidates, setCadidates] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -346,11 +349,12 @@ export default function App() {
         if (
           e.response.data.error === "Вы уже проголосовали в данной номинации"
         ) {
-          alert("Вы уже проголосовали в данной номинации");
+          toggleAlert("Вы уже проголосовали в данной номинации");
+          // alert("");
         }
 
         if (e.response.data.error === "У вас нет голосов для голосования") {
-          alert("У вас нет голосов для голосования");
+          toggleAlert("У вас нет голосов для голосования");
         }
       }
     };
@@ -537,7 +541,7 @@ export default function App() {
                     if (selectedNominations.includes(nomination.nomination)) {
                       return (
                         <li key={nomination.id}>
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 h-full sm:grid-cols-2 gap-4">
                             <div className="w-full">
                               <h1 className="text-2xl font-semibold text-[#232323] capitalize">
                                 <Trans>{candidate.full_name}</Trans>
@@ -572,26 +576,36 @@ export default function App() {
                                   <Trans>{candidate.bio}</Trans>
                                 </span>
                               </p>
-                              <p className="mt-4 font-medium text-[#232323]">
-                                Материалы:{" "}
-                              </p>{" "}
-                              <ul className="mt-2 flex flex-wrap gap-3 items-start">
-                                {candidate.materials.map((material, index) => (
-                                  <li
-                                    className="grid grid-cols-1"
-                                    key={material.id}
-                                  >
-                                    <PopupLink to={material.link}>
-                                      {index + 1}
-                                    </PopupLink>
-                                  </li>
-                                ))}
-                              </ul>
+
+                              {candidate.materials.length === 0 ? (
+                                ""
+                              ) : (
+                                <>
+                                  <p className="mt-4 font-medium text-[#232323]">
+                                    {t("Материалы")}:{" "}
+                                  </p>
+
+                                  <ul className="mt-2 flex flex-wrap gap-3 items-start">
+                                    {candidate.materials.map(
+                                      (material, index) => (
+                                        <li
+                                          className="grid grid-cols-1"
+                                          key={material.id}
+                                        >
+                                          <PopupLink to={material.link}>
+                                            {index + 1}
+                                          </PopupLink>
+                                        </li>
+                                      )
+                                    )}
+                                  </ul>
+                                </>
+                              )}
                             </div>
 
                             <div className="max-md:row-start-1">
                               <img
-                                className="rounded-xl"
+                                className="rounded-xl w-full h-full object-cover"
                                 src={candidate.photo}
                                 alt=""
                               />
@@ -602,7 +616,7 @@ export default function App() {
                                 candidate.id,
                                 nomination.nomination
                               )}
-                              className="py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] sm:col-start-1 sm:col-end-3"
+                              className="mt-auto h-fit py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] sm:col-start-1 sm:col-end-3"
                             >
                               <Trans>Проголосовать</Trans>
                             </button>
@@ -616,7 +630,7 @@ export default function App() {
                   candidate.nominations.map((nomination) => {
                     return (
                       <li key={nomination.id}>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 h-full sm:grid-cols-2 gap-4">
                           <div className="w-full">
                             <h1 className="text-2xl font-semibold text-[#232323] capitalize">
                               <Trans>{candidate.full_name}</Trans>
@@ -653,27 +667,35 @@ export default function App() {
                               </span>
                             </p>
 
-                            <p className="mt-4 font-medium text-[#232323]">
-                              Материалы:{" "}
-                            </p>
+                            {candidate.materials.length === 0 ? (
+                              ""
+                            ) : (
+                              <>
+                                <p className="mt-4 font-medium text-[#232323]">
+                                  {t("Материалы")}:{" "}
+                                </p>
 
-                            <ul className="mt-2 flex flex-wrap gap-3 items-start">
-                              {candidate.materials.map((material, index) => (
-                                <li
-                                  className="grid grid-cols-1"
-                                  key={material.id}
-                                >
-                                  <PopupLink to={material.link}>
-                                    {index + 1}
-                                  </PopupLink>
-                                </li>
-                              ))}
-                            </ul>
+                                <ul className="mt-2 flex flex-wrap gap-3 items-start">
+                                  {candidate.materials.map(
+                                    (material, index) => (
+                                      <li
+                                        className="grid grid-cols-1"
+                                        key={material.id}
+                                      >
+                                        <PopupLink to={material.link}>
+                                          {index + 1}
+                                        </PopupLink>
+                                      </li>
+                                    )
+                                  )}
+                                </ul>
+                              </>
+                            )}
                           </div>
 
                           <div className="max-md:row-start-1">
                             <img
-                              className="rounded-xl"
+                              className="rounded-xl w-full h-full object-cover"
                               src={candidate.photo}
                               alt=""
                             />
@@ -684,7 +706,7 @@ export default function App() {
                               candidate.id,
                               nomination.nomination
                             )}
-                            className="py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] sm:col-start-1 sm:col-end-3 transition duration-200 stroke hover:bg-[#01abab]"
+                            className="mt-auto h-fit py-4 font-bold text-white rounded-full border border-[#02C5C4] bg-[#02C5C4] sm:col-start-1 sm:col-end-3 transition duration-200 stroke hover:bg-[#01abab]"
                           >
                             <Trans>Проголосовать</Trans>
                           </button>
@@ -698,6 +720,8 @@ export default function App() {
       </main>
 
       <LoginModal />
+
+      <Alert />
     </div>
   );
 }

@@ -7,6 +7,7 @@ import App from "./App.jsx";
 import "./index.css";
 import { TokenContextProvider } from "./context/token.jsx";
 import { AuthContextProvider } from "./context/auth.jsx";
+import { AlertContextProvider } from "./context/alert.jsx";
 import { resourcesTranslate } from "./config.js";
 
 i18next.use(initReactI18next).init({
@@ -16,12 +17,12 @@ i18next.use(initReactI18next).init({
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
-    {/* <I18nextProvider i18n={i18n}> */}
     <AuthContextProvider>
-      <TokenContextProvider>
-        <App />
-      </TokenContextProvider>
+      <AlertContextProvider>
+        <TokenContextProvider>
+          <App />
+        </TokenContextProvider>
+      </AlertContextProvider>
     </AuthContextProvider>
-    {/* </I18nextProvider> */}
   </React.StrictMode>
 );
