@@ -343,18 +343,17 @@ export default function App() {
         );
 
         if (response.data.message === "Голос успешно принят") {
-          alert("Спасибо за голос!");
+          toggleAlert("Спасибо за голос!");
         }
       } catch (e) {
         if (
           e.response.data.error === "Вы уже проголосовали в данной номинации"
         ) {
-          toggleAlert("Вы уже проголосовали в данной номинации");
-          // alert("");
+          toggleAlert("Вы уже проголосовали в данной номинации!");
         }
 
         if (e.response.data.error === "У вас нет голосов для голосования") {
-          toggleAlert("У вас нет голосов для голосования");
+          toggleAlert("У вас нет голосов для голосования!");
         }
       }
     };
