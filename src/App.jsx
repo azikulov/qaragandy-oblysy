@@ -18,10 +18,10 @@ function LoginModal() {
   const [error, setError] = useState(false);
 
   const [formData, setFormData] = useState({
-    // phone: "",
-    // password: "",
-    phone: "+77770736981",
-    password: "leopoldfitz",
+     phone: "",
+     password: "",
+  //  phone: "+77770736981",
+   // password: "leopoldfitz",
   });
 
   // eslint-disable-next-line no-unused-vars
@@ -119,7 +119,7 @@ function LoginModal() {
       localStorage.setItem("phone", formData.phone);
       localStorage.setItem("password", formData.password);
 
-      if (filename) {
+      
         const response = await sendCertificate({
           accessToken: verifiedToken.access,
         });
@@ -130,10 +130,6 @@ function LoginModal() {
         }
         setError(true);
         return updateAuth(false);
-      }
-
-      setIsLoading(false);
-      return updateAuth(true);
     } catch (e) {
       if (e.response.data.message === "Удостоверение уже имеется") {
         setIsLoading(false);
