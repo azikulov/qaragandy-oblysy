@@ -18,10 +18,10 @@ function LoginModal() {
   const [error, setError] = useState(false);
 
   const [formData, setFormData] = useState({
-     phone: "",
-     password: "",
-  //  phone: "+77770736981",
-   // password: "leopoldfitz",
+    // phone: "",
+    // password: "",
+    phone: "+77770736981",
+    password: "leopoldfitz",
   });
 
   // eslint-disable-next-line no-unused-vars
@@ -60,8 +60,12 @@ function LoginModal() {
             );
 
             setLocalToken(newToken.data);
-            localStorage.setItem("accessToken", newToken.data.access);
-            localStorage.setItem("refreshToken", newToken.data.refresh);
+
+            if (filename) {
+              localStorage.setItem("accessToken", newToken.data.access);
+              localStorage.setItem("refreshToken", newToken.data.refresh);
+            }
+
             return newToken.data;
           }
 
@@ -70,8 +74,12 @@ function LoginModal() {
           });
 
           setLocalToken(newToken.data);
-          localStorage.setItem("accessToken", newToken.data.access);
-          localStorage.setItem("refreshToken", newToken.data.refresh);
+
+          if (filename) {
+            localStorage.setItem("accessToken", newToken.data.access);
+            localStorage.setItem("refreshToken", newToken.data.refresh);
+          }
+
           return newToken.data;
         }
       }
@@ -85,8 +93,11 @@ function LoginModal() {
     });
 
     setLocalToken(response.data);
-    localStorage.setItem("accessToken", response.data.access);
-    localStorage.setItem("refreshToken", response.data.refresh);
+
+    if (filename) {
+      localStorage.setItem("accessToken", response.data.access);
+      localStorage.setItem("refreshToken", response.data.refresh);
+    }
 
     return response.data;
   }
@@ -114,28 +125,27 @@ function LoginModal() {
 
       // Сохраняем токен в глобальное состояние
       updateToken(verifiedToken);
-      localStorage.setItem("accessToken", verifiedToken.access);
-      localStorage.setItem("refreshToken", verifiedToken.refresh);
-      localStorage.setItem("phone", formData.phone);
-      localStorage.setItem("password", formData.password);
 
-      
-        const response = await sendCertificate({
-          accessToken: verifiedToken.access,
-        });
-
-        if (response.status === 200) {
+      const response = await sendCertificate({
+        accessToken: verifiedToken.access,
+      }).catch((e) => {
+        if (e.response.data.message === "Удостоверение уже имеется") {
+          localStorage.setItem("accessToken", verifiedToken.access);
+          localStorage.setItem("refreshToken", verifiedToken.refresh);
+          localStorage.setItem("phone", formData.phone);
+          localStorage.setItem("password", formData.password);
           setIsLoading(false);
           return updateAuth(true);
         }
-        setError(true);
-        return updateAuth(false);
-    } catch (e) {
-      if (e.response.data.message === "Удостоверение уже имеется") {
+      });
+
+      if (response.status === 200) {
         setIsLoading(false);
         return updateAuth(true);
       }
-
+      setError(true);
+      return updateAuth(false);
+    } catch (e) {
       setIsLoading(false);
       setError(true);
     }
