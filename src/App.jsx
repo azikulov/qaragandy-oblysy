@@ -536,6 +536,16 @@ export default function App() {
           </button>
         </div>
 
+        <div className="flex justify-center pt-4">
+          <a
+            href="https://instagram.com/canddc_team"
+            target="_blank"
+            className="text-xs text-[#212121] font-medium"
+          >
+            created by C&DC
+          </a>
+        </div>
+
         <div className="my-8 w-full bg-[#9A9A9A] h-[1px]"></div>
 
         <ul className="grid grid-cols-1 md:grid-cols-2 gap-8">
