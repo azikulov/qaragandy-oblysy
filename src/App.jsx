@@ -10,10 +10,8 @@ import { Alert } from "./components/Alert";
 import LogoPng from "./assets/logo.png";
 
 function LoginModal() {
-  const { t } = useTranslation();
 
   const [localToken, setLocalToken] = useState({ access: null, refresh: null });
-  const [filename, setFilename] = useState();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(false);
 
@@ -25,7 +23,7 @@ function LoginModal() {
   });
 
   // eslint-disable-next-line no-unused-vars
-  const { _, updateToken } = useTokenContext();
+  const { updateToken } = useTokenContext();
   const { isAuth, updateAuth } = useAuthContext();
 
   async function getToken({ phone, password }) {
@@ -61,10 +59,8 @@ function LoginModal() {
 
             setLocalToken(newToken.data);
 
-            if (filename) {
               localStorage.setItem("accessToken", newToken.data.access);
               localStorage.setItem("refreshToken", newToken.data.refresh);
-            }
 
             return newToken.data;
           }
@@ -75,10 +71,8 @@ function LoginModal() {
 
           setLocalToken(newToken.data);
 
-          if (filename) {
             localStorage.setItem("accessToken", newToken.data.access);
             localStorage.setItem("refreshToken", newToken.data.refresh);
-          }
 
           return newToken.data;
         }
@@ -94,24 +88,13 @@ function LoginModal() {
 
     setLocalToken(response.data);
 
-    if (filename) {
       localStorage.setItem("accessToken", response.data.access);
       localStorage.setItem("refreshToken", response.data.refresh);
-    }
 
     return response.data;
   }
 
-  async function sendCertificate({ accessToken }) {
-    const formData = new FormData();
-    formData.append("journalist_certificate", filename);
-
-    return await axios.patch(API_URL + endpoints.UPLOAD_CERTIFICATE, formData, {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-      },
-    });
-  }
+  
 
   async function handleSubmit() {
     setIsLoading(true);
@@ -126,25 +109,13 @@ function LoginModal() {
       // Сохраняем токен в глобальное состояние
       updateToken(verifiedToken);
 
-      const response = await sendCertificate({
-        accessToken: verifiedToken.access,
-      }).catch((e) => {
-        if (e.response.data.message === "Удостоверение уже имеется") {
-          localStorage.setItem("accessToken", verifiedToken.access);
-          localStorage.setItem("refreshToken", verifiedToken.refresh);
-          localStorage.setItem("phone", formData.phone);
-          localStorage.setItem("password", formData.password);
-          setIsLoading(false);
-          return updateAuth(true);
-        }
-      });
-
-      if (response.status === 200) {
-        setIsLoading(false);
-        return updateAuth(true);
-      }
-      setError(true);
-      return updateAuth(false);
+      localStorage.setItem("accessToken", verifiedToken.access);
+      localStorage.setItem("phone", formData.phone);
+      localStorage.setItem("password", formData.password);
+      localStorage.setItem("refreshToken", verifiedToken.refresh);
+   
+      setError(false);
+      return updateAuth(true);
     } catch (e) {
       setIsLoading(false);
       setError(true);
@@ -212,25 +183,7 @@ function LoginModal() {
             />
           </div>
 
-          <div className="flex flex-col items-start gap-3 mt-4">
-            <p className="text-[#232323]">
-              <Trans>Копия удостоверения журналиста</Trans>
-            </p>
-
-            <label
-              htmlFor="file"
-              className="transition duration-200 hover:bg-[#01abab] px-6 py-2.5 rounded-full cursor-pointer text-white bg-[#02C5C4]"
-            >
-              {filename ? filename.name : t("Загрузить файлы")}
-            </label>
-
-            <input
-              id="file"
-              onChange={(event) => setFilename(event.currentTarget.files[0])}
-              hidden
-              type="file"
-            />
-          </div>
+          
 
           <button
             onClick={handleSubmit}
